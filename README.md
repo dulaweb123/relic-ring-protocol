@@ -1,7 +1,6 @@
 #  Zeta-26 · Relic Ring Protocol
 
 **Team:** ByteForce  
-**Competition:** Launch 26 — IEEE Computer Society, University of Kelaniya
 
 ---
 
