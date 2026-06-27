@@ -90,5 +90,4 @@ Key constants (from config):
 
 ---
 
-*Built for Launch 26 · IEEE CS University of Kelaniya*
 
