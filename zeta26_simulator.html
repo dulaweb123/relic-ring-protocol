@@ -1197,8 +1197,49 @@ function switchTab(name) {
 }
 
 // ============================================================
-//  BOOT
+//  ENCODING VISUALIZER
 // ============================================================
+function showEncodingVisualizer() {
+  if (!lastResult) {
+    addLog('No transmission yet. Send a packet first!', 'warn');
+    return;
+  }
+  const { path, msg, asciiBytes } = lastResult;
+  let html = `
+    <div style="padding:14px 16px">
+      <div class="panel-title">Encoding Journey · "${msg}"</div>
+      <div style="margin-top:4px;font-size:10px;color:var(--muted)">ASCII: [${asciiBytes.join(', ')}]</div>
+    </div>
+  `;
+  for (let i = 0; i < path.length; i++) {
+    const planet = nodes[path[i]];
+    const isLast = i === path.length - 1;
+    const nextPlanet = isLast ? null : nodes[path[i+1]];
+    const encodedHere = encodePayloadToBase(asciiBytes, planet.codex);
+    html += `
+      <div style="margin:0 16px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div style="width:10px;height:10px;border-radius:50%;background:${PLANET_COLORS[planet.id]}"></div>
+          <strong style="color:${PLANET_COLORS[planet.id]}">${planet.id}</strong>
+          <span style="font-size:10px;color:var(--muted);margin-left:auto">Base-${planet.codex}</span>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Received in Base-${planet.codex}:</div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--accent);word-break:break-all;background:rgba(0,212,255,0.05);padding:6px;border-radius:3px">[${encodedHere.join(', ')}]</div>
+        ${nextPlanet ? `
+        <div style="margin-top:8px;font-size:10px;color:var(--muted)">↓ Encoding for ${nextPlanet.id} (Base-${nextPlanet.codex}):</div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:#ffd700;word-break:break-all;background:rgba(255,215,0,0.05);padding:6px;border-radius:3px;margin-top:4px">[${encodePayloadToBase(asciiBytes, nextPlanet.codex).join(', ')}]</div>
+        ` : `
+        <div style="margin-top:8px;font-size:11px;color:var(--green)">✅ Final decode → "${msg}"</div>
+        `}
+      </div>
+    `;
+    if (!isLast) {
+      html += `<div style="text-align:center;color:var(--muted);font-size:11px;margin-bottom:8px">⬇ void transmission ⬇</div>`;
+    }
+  }
+  document.getElementById('hopPath').innerHTML = html;
+  switchTab('hops');
+}
 init();
 </script>
 </body>
