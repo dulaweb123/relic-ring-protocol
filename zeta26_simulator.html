@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zeta-26 · Relic Ring Protocol</title>
+<style>
+  :root {
+    --bg: #050a18;
+    --panel: #0a1428;
+    --panel2: #0d1c38;
+    --border: #1a3060;
+    --accent: #00d4ff;
+    --accent2: #7b2fff;
+    --gold: #ffd700;
+    --green: #00ff88;
+    --red: #ff4466;
+    --orange: #ff8c00;
+    --text: #c8d8f0;
+    --muted: #5a7aa0;
+    --font-mono: 'Courier New', monospace;
+    --font-ui: system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .tagline { color: var(--muted); font-size: 11px; }
+  .status-bar { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .status-dot.dead { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+  /* LAYOUT */
+  .app { display: grid; grid-template-columns: 320px 1fr 340px; grid-template-rows: 1fr; height: calc(100vh - 53px); }
+
+  /* LEFT PANEL */
+  .left-panel {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .panel-section { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .panel-title { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+
+  /* SEND FORM */
+  label { display: block; color: var(--muted); font-size: 11px; margin-bottom: 4px; margin-top: 10px; }
+  label:first-of-type { margin-top: 0; }
+  select, textarea, input[type=text] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: inherit;
+  }
+  select:focus, textarea:focus, input:focus { outline: none; border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 60px; font-family: var(--font-mono); }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer;
+    font-size: 12px; font-weight: 600; transition: all 0.15s;
+  }
+  .btn-primary { background: var(--accent); color: #000; width: 100%; margin-top: 12px; }
+  .btn-primary:hover { background: #00b8e0; }
+  .btn-primary:disabled { background: var(--muted); cursor: not-allowed; }
+  .btn-danger { background: var(--red); color: #fff; font-size: 11px; padding: 5px 10px; }
+  .btn-success { background: var(--green); color: #000; font-size: 11px; padding: 5px 10px; }
+  .btn-sm { font-size: 11px; padding: 5px 10px; background: var(--panel2); border: 1px solid var(--border); color: var(--text); }
+  .btn-sm:hover { border-color: var(--accent); }
+
+  /* PLANET LIST */
+  .planet-list { flex: 1; overflow-y: auto; }
+  .planet-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px; border-bottom: 1px solid rgba(26,48,96,0.4);
+    cursor: pointer; transition: background 0.1s;
+  }
+  .planet-item:hover { background: var(--panel2); }
+  .planet-item.selected { background: rgba(0,212,255,0.08); border-left: 2px solid var(--accent); }
+  .planet-item.dead { opacity: 0.4; }
+  .planet-dot { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #000; }
+  .planet-info { flex: 1; min-width: 0; }
+  .planet-name { font-weight: 700; font-size: 13px; }
+  .planet-meta { color: var(--muted); font-size: 10px; margin-top: 1px; }
+  .kill-btn { font-size: 10px; padding: 3px 7px; border-radius: 3px; border: 1px solid; cursor: pointer; }
+  .kill-btn.alive { border-color: var(--red); color: var(--red); background: transparent; }
+  .kill-btn.alive:hover { background: rgba(255,68,102,0.15); }
+  .kill-btn.dead-node { border-color: var(--green); color: var(--green); background: transparent; }
+  .kill-btn.dead-node:hover { background: rgba(0,255,136,0.1); }
+
+  /* CANVAS */
+  .canvas-wrap {
+    position: relative;
+    background: radial-gradient(ellipse at 50% 50%, #0a1428 0%, #050a18 70%);
+    overflow: hidden;
+  }
+  #starfield { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+  #universeCanvas { width: 100%; height: 100%; cursor: crosshair; }
+  .canvas-controls {
+    position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 8px;
+  }
+
+  /* RIGHT PANEL */
+  .right-panel {
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .tabs { display: flex; border-bottom: 1px solid var(--border); }
+  .tab {
+    flex: 1; padding: 10px; text-align: center; cursor: pointer;
+    font-size: 11px; font-weight: 600; color: var(--muted);
+    border-bottom: 2px solid transparent; transition: all 0.15s;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-content { flex: 1; overflow-y: auto; display: none; }
+  .tab-content.active { display: block; }
+
+  /* LOG */
+  .log-container { padding: 10px; font-family: var(--font-mono); font-size: 11px; line-height: 1.7; }
+  .log-entry { padding: 6px 8px; margin-bottom: 4px; border-radius: 3px; border-left: 3px solid; }
+  .log-entry.info { border-color: var(--accent); background: rgba(0,212,255,0.05); }
+  .log-entry.success { border-color: var(--green); background: rgba(0,255,136,0.05); }
+  .log-entry.error { border-color: var(--red); background: rgba(255,68,102,0.05); }
+  .log-entry.warn { border-color: var(--orange); background: rgba(255,140,0,0.05); }
+  .log-entry.hop { border-color: var(--accent2); background: rgba(123,47,255,0.05); }
+  .log-time { color: var(--muted); margin-right: 6px; }
+
+  /* LATENCY BREAKDOWN */
+  .latency-card { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .latency-total { font-size: 24px; font-weight: 900; color: var(--accent); }
+  .latency-unit { font-size: 12px; color: var(--muted); }
+  .latency-bars { margin-top: 12px; }
+  .lat-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .lat-label { width: 90px; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .lat-bar-wrap { flex: 1; background: rgba(255,255,255,0.05); border-radius: 2px; height: 6px; }
+  .lat-bar { height: 100%; border-radius: 2px; transition: width 0.5s; }
+  .lat-value { width: 70px; text-align: right; font-size: 11px; font-family: var(--font-mono); }
+
+  /* HOP PATH */
+  .hop-path { padding: 14px 16px; }
+  .hop-step {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid rgba(26,48,96,0.4);
+  }
+  .hop-step:last-child { border-bottom: none; }
+  .hop-num { width: 22px; height: 22px; border-radius: 50%; background: var(--accent2); color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .hop-details { flex: 1; }
+  .hop-planet { font-weight: 700; font-size: 12px; }
+  .hop-tower { color: var(--muted); font-size: 10px; }
+  .hop-payload { margin-top: 4px; font-family: var(--font-mono); font-size: 10px; color: var(--accent); word-break: break-all; max-height: 50px; overflow-y: auto; }
+
+  /* NODE INFO */
+  .node-info-card { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .node-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .node-stat { background: var(--bg); border-radius: 4px; padding: 8px; }
+  .node-stat-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .node-stat-val { font-size: 14px; font-weight: 700; color: var(--text); margin-top: 2px; font-family: var(--font-mono); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* SENDING ANIMATION */
+  .pulse { animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* TOOLTIP */
+  .tooltip { position: absolute; background: var(--panel2); border: 1px solid var(--border); border-radius: 4px; padding: 8px 10px; font-size: 11px; pointer-events: none; z-index: 100; max-width: 200px; }
+
+  .empty-state { padding: 30px 20px; text-align: center; color: var(--muted); }
+  .empty-icon { font-size: 32px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">ZETA-26</div>
+    <div class="tagline">Relic Ring Protocol · Communication Simulator</div>
+  </div>
+  <div class="status-bar">
+    <span id="nodeCount" style="color:var(--muted);font-size:11px">6 nodes active</span>
+    <div class="status-dot" id="systemDot"></div>
+    <span id="systemStatus" style="font-size:11px">ONLINE</span>
+  </div>
+</header>
+
+<div class="app">
+
+  <!-- LEFT: Controls + Planet List -->
+  <div class="left-panel">
+    <div class="panel-section">
+      <div class="panel-title">Transmit Packet</div>
+      <label>Origin Planet</label>
+      <select id="originSelect"></select>
+      <label>Destination Planet</label>
+      <select id="destSelect"></select>
+      <label>Message Payload</label>
+      <textarea id="msgPayload" placeholder="Hello world">Hello world</textarea>
+      <button class="btn btn-primary" id="sendBtn" onclick="sendPacket()">⚡ Transmit</button>
+    </div>
+    <div class="panel-section" style="padding:10px 16px">
+      <div class="panel-title">Planet Nodes</div>
+    </div>
+    <div class="planet-list" id="planetList"></div>
+  </div>
+
+  <!-- CENTER: Universe Canvas -->
+  <div class="canvas-wrap">
+    <canvas id="starfield"></canvas>
+    <canvas id="universeCanvas"></canvas>
+    <div class="canvas-controls">
+      <button class="btn btn-sm" onclick="resetView()">⟳ Reset View</button>
+      <button class="btn btn-sm" onclick="toggleLabels()">🏷 Labels</button>
+    </div>
+    <div id="tooltip" class="tooltip" style="display:none"></div>
+  </div>
+
+  <!-- RIGHT: Logs + Breakdown -->
+  <div class="right-panel">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('log')">System Log</div>
+      <div class="tab" onclick="switchTab('latency')">Latency</div>
+      <div class="tab" onclick="switchTab('hops')">Hop Path</div>
+      <div class="tab" onclick="switchTab('nodes')">Node Info</div>
+    </div>
+
+    <div class="tab-content active" id="tab-log">
+      <div class="log-container" id="logContainer">
+        <div class="log-entry info"><span class="log-time">00:00</span>Zeta-26 Relic Ring Protocol initialized.</div>
+        <div class="log-entry info"><span class="log-time">00:00</span>Universe config loaded: 6 planetary nodes discovered.</div>
+        <div class="log-entry success"><span class="log-time">00:00</span>All nodes nominal. Awaiting transmission orders.</div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-latency">
+      <div class="latency-card" id="latencyCard">
+        <div class="empty-state">
+          <div class="empty-icon">📡</div>
+          <div>No transmission yet.<br>Send a packet to see latency breakdown.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-hops">
+      <div class="hop-path" id="hopPath">
+        <div class="empty-state">
+          <div class="empty-icon">🛸</div>
+          <div>No route computed.<br>Transmit a packet to trace the path.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-nodes">
+      <div id="nodeInfoPanel">
+        <div class="empty-state">
+          <div class="empty-icon">🌍</div>
+          <div>Click a planet in the universe<br>to inspect its properties.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  UNIVERSE CONFIG
+// ============================================================
+const CONFIG = {
+  "universe_metadata": {
+    "system_name": "Zeta-26",
+    "speed_of_light_kms": 300000.0,
+    "max_void_hop_distance_km": 50000000.0,
+    "coordinate_scale_unit_km": 100000.0,
+    "tower_processing_delay_ms": 7.0,
+    "fiber_speed_fraction": 0.67
+  },
+  "nodes": [
+    { "id": "Aegis",   "codex": 8,  "x": 0.0,   "y": 0.0,   "radius_km": 6371.0,  "active_towers": 8,  "atmosphere_thickness_km": 120.0,  "refraction_index": 1.0003 },
+    { "id": "Boreas",  "codex": 5,  "x": 150.0,  "y": 100.0,  "radius_km": 3389.0,  "active_towers": 4,  "atmosphere_thickness_km": 85.0,   "refraction_index": 1.0520 },
+    { "id": "Dawn",    "codex": 6,  "x": 350.0,  "y": 50.0,   "radius_km": 1500.0,  "active_towers": 6,  "atmosphere_thickness_km": 30.0,   "refraction_index": 1.0110 },
+    { "id": "Elysium", "codex": 10, "x": 300.0,  "y": 350.0,  "radius_km": 6051.0,  "active_towers": 12, "atmosphere_thickness_km": 250.0,  "refraction_index": 1.1850 },
+    { "id": "Fenix",   "codex": 16, "x": 500.0,  "y": -100.0, "radius_km": 1200.0,  "active_towers": 4,  "atmosphere_thickness_km": 15.0,   "refraction_index": 1.0050 },
+    { "id": "Caelum",  "codex": 14, "x": 650.0,  "y": 200.0,  "radius_km": 58232.0, "active_towers": 16, "atmosphere_thickness_km": 500.0,  "refraction_index": 1.3210 }
+  ]
+};
+
+const META = CONFIG.universe_metadata;
+const C = META.speed_of_light_kms;
+const S = META.coordinate_scale_unit_km;
+const Lmax = META.max_void_hop_distance_km;
+const f = META.fiber_speed_fraction;
+const dt = META.tower_processing_delay_ms;
+
+// ============================================================
+//  STATE
+// ============================================================
+let nodes = {};
+let deadNodes = new Set();
+let lastResult = null;
+let showLabels = true;
+let animationPackets = [];
+let canvasOffset = { x: 0, y: 0, scale: 1 };
+let isDragging = false;
+let dragStart = { x: 0, y: 0 };
+
+// Planet color palette
+const PLANET_COLORS = {
+  'Aegis':   '#4a9eff',
+  'Boreas':  '#ff6b6b',
+  'Dawn':    '#ffd700',
+  'Elysium': '#00ff88',
+  'Fenix':   '#ff8c00',
+  'Caelum':  '#c084fc'
+};
+
+// ============================================================
+//  INIT
+// ============================================================
+function init() {
+  CONFIG.nodes.forEach(n => {
+    nodes[n.id] = { ...n };
+  });
+  populateSelects();
+  renderPlanetList();
+  setupCanvas();
+  drawStarfield();
+  drawUniverse();
+  setupCanvasEvents();
+}
+
+function populateSelects() {
+  const ids = Object.keys(nodes);
+  ['originSelect','destSelect'].forEach((sel, i) => {
+    const el = document.getElementById(sel);
+    el.innerHTML = '';
+    ids.forEach((id, j) => {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = `${id} (Base ${nodes[id].codex})`;
+      if (i === 0 && j === 0) opt.selected = true;
+      if (i === 1 && j === ids.length - 1) opt.selected = true;
+      el.appendChild(opt);
+    });
+  });
+}
+
+function renderPlanetList() {
+  const list = document.getElementById('planetList');
+  list.innerHTML = '';
+  Object.values(nodes).forEach(n => {
+    const dead = deadNodes.has(n.id);
+    const div = document.createElement('div');
+    div.className = `planet-item${dead ? ' dead' : ''}`;
+    div.id = `planet-item-${n.id}`;
+    div.innerHTML = `
+      <div class="planet-dot" style="background:${PLANET_COLORS[n.id]}">${n.id[0]}</div>
+      <div class="planet-info">
+        <div class="planet-name">${n.id}</div>
+        <div class="planet-meta">Base-${n.codex} · ${n.active_towers} towers · r=${n.radius_km.toLocaleString()} km</div>
+      </div>
+      <button class="kill-btn ${dead ? 'dead-node' : 'alive'}" onclick="toggleNode('${n.id}',event)">${dead ? '⚡ Revive' : '💀 Kill'}</button>
+    `;
+    div.onclick = (e) => { if(!e.target.classList.contains('kill-btn')) selectNode(n.id); };
+    list.appendChild(div);
+  });
+}
+
+// ============================================================
+//  MATH UTILITIES
+// ============================================================
+function voidDistance(a, b) {
+  const dx = (b.x - a.x);
+  const dy = (b.y - a.y);
+  const centerDist = Math.sqrt(dx*dx + dy*dy) * S;
+  return centerDist - (a.radius_km + a.atmosphere_thickness_km) - (b.radius_km + b.atmosphere_thickness_km);
+}
+
+function voidTravelTime(a, b, L) {
+  // Tv = [(h1*n1) + (h2*n2) + L] / C   (ms)
+  const num = (a.atmosphere_thickness_km * a.refraction_index)
+            + (b.atmosphere_thickness_km * b.refraction_index)
+            + L;
+  return (num / C) * 1000; // convert s to ms
+}
+
+function getTowerAngle(towerIdx, totalTowers) {
+  // T0 at top (positive y), clockwise
+  return (Math.PI / 2) - (2 * Math.PI * towerIdx / totalTowers);
+  // or equivalently: angle starts at 90° going clockwise
+}
+
+function getTowerPos(planet, towerIdx) {
+  const angle = (Math.PI / 2) - (2 * Math.PI * towerIdx / planet.active_towers);
+  return {
+    x: planet.x * S + Math.cos(angle) * planet.radius_km,
+    y: planet.y * S + Math.sin(angle) * planet.radius_km
+  };
+}
+
+function bestTowerPair(a, b) {
+  // Find pair (i from a, j from b) minimizing straight-line distance between tower positions
+  // But per spec, L is center-to-center minus radii+atm. Tower pair only used for fiber routing.
+  // Still find closest pair for hop_log / fiber routing.
+  let best = { ai: 0, bi: 0, dist: Infinity };
+  for (let i = 0; i < a.active_towers; i++) {
+    const tp_a = getTowerPos(a, i);
+    for (let j = 0; j < b.active_towers; j++) {
+      const tp_b = getTowerPos(b, j);
+      const dx = tp_b.x - tp_a.x;
+      const dy = tp_b.y - tp_a.y;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if (d < best.dist) best = { ai: i, bi: j, dist: d };
+    }
+  }
+  return best;
+}
+
+function arcSegments(N, exitTower, entryTower) {
+  // s = number of segments (arc steps) between towers, shortest path around ring
+  if (exitTower === entryTower) return 0;
+  const cw = ((exitTower - entryTower) + N) % N;
+  const ccw = ((entryTower - exitTower) + N) % N;
+  return Math.min(cw, ccw);
+}
+
+function internalTransitTime(planet, entryTower, exitTower) {
+  // Tp = (2π * r * s / (N * f * C)) + m * dt
+  // s = arc segments, m = distinct towers hit
+  const N = planet.active_towers;
+  const r = planet.radius_km;
+  const s = arcSegments(N, entryTower, exitTower);
+  const m = (s === 0) ? 1 : s + 1;
+  const arcLen = (2 * Math.PI * r * s) / N;
+  const fiberTime = (arcLen / (f * C)) * 1000; // ms
+  const towerDelay = m * dt;
+  return { fiberTime, towerDelay, total: fiberTime + towerDelay, s, m };
+}
+
+// ============================================================
+//  ROUTING (Dijkstra on void links)
+// ============================================================
+function buildGraph() {
+  const alive = Object.keys(nodes).filter(id => !deadNodes.has(id));
+  const edges = {};
+  alive.forEach(id => edges[id] = []);
+
+  for (let i = 0; i < alive.length; i++) {
+    for (let j = i + 1; j < alive.length; j++) {
+      const a = nodes[alive[i]];
+      const b = nodes[alive[j]];
+      const L = voidDistance(a, b);
+      if (L > 0 && L <= Lmax) {
+        const Tv = voidTravelTime(a, b, L);
+        edges[alive[i]].push({ to: alive[j], L, Tv });
+        edges[alive[j]].push({ to: alive[i], L, Tv });
+      }
+    }
+  }
+  return edges;
+}
+
+function dijkstra(origin, destination) {
+  const graph = buildGraph();
+  const alive = Object.keys(nodes).filter(id => !deadNodes.has(id));
+  if (!alive.includes(origin) || !alive.includes(destination)) return null;
+
+  const dist = {};
+  const prev = {};
+  const unvisited = new Set(alive);
+  alive.forEach(id => dist[id] = Infinity);
+  dist[origin] = 0;
+
+  while (unvisited.size > 0) {
+    let u = null;
+    unvisited.forEach(id => { if (u === null || dist[id] < dist[u]) u = id; });
+    if (u === null || dist[u] === Infinity) break;
+    if (u === destination) break;
+    unvisited.delete(u);
+
+    (graph[u] || []).forEach(edge => {
+      if (!unvisited.has(edge.to)) return;
+      // estimate internal cost at relay (use avg)
+      const relay = nodes[edge.to];
+      const avgInternal = (2 * Math.PI * relay.radius_km / relay.active_towers / 2) / (f * C) * 1000 + 2 * dt;
+      const alt = dist[u] + edge.Tv + (edge.to !== destination ? avgInternal : 0);
+      if (alt < dist[edge.to]) {
+        dist[edge.to] = alt;
+        prev[edge.to] = u;
+      }
+    });
+  }
+
+  if (dist[destination] === Infinity) return null;
+  const path = [];
+  let cur = destination;
+  while (cur) { path.unshift(cur); cur = prev[cur]; }
+  return path;
+}
+
+// ============================================================
+//  BASE CONVERSION
+// ============================================================
+function toBase(n, base) {
+  if (n === 0) return '0';
+  const digits = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let result = '';
+  let num = n;
+  while (num > 0) {
+    result = digits[num % base] + result;
+    num = Math.floor(num / base);
+  }
+  return result;
+}
+
+function encodePayloadToBase(asciiBytes, base) {
+  return asciiBytes.map(b => toBase(b, base));
+}
+
+function decodePayloadFromBase(encoded, base) {
+  const digits = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  return encoded.map(s => {
+    let val = 0;
+    for (const c of s.toUpperCase()) {
+      val = val * base + digits.indexOf(c);
+    }
+    return val;
+  });
+}
+
+function msgToAscii(msg) {
+  return [...msg].map(c => c.charCodeAt(0));
+}
+
+// ============================================================
+//  PACKET TRANSMISSION
+// ============================================================
+function sendPacket() {
+  const origin = document.getElementById('originSelect').value;
+  const dest = document.getElementById('destSelect').value;
+  const msg = document.getElementById('msgPayload').value.trim();
+
+  if (!msg) { addLog('No payload specified.', 'warn'); return; }
+  if (origin === dest) { addLog('Origin and destination are the same planet.', 'warn'); return; }
+  if (deadNodes.has(origin)) { addLog(`Origin planet ${origin} is offline!`, 'error'); return; }
+  if (deadNodes.has(dest)) { addLog(`Destination planet ${dest} is offline!`, 'error'); return; }
+
+  addLog(`Initiating transmission: ${origin} → ${dest}`, 'info');
+  addLog(`Payload: "${msg}" (${msg.length} chars)`, 'info');
+
+  const path = dijkstra(origin, dest);
+  if (!path) {
+    addLog(`No viable route found from ${origin} to ${dest}. Route undeliverable.`, 'error');
+    switchTab('log');
+    return;
+  }
+
+  addLog(`Route computed: ${path.join(' → ')} (${path.length - 1} void hop${path.length > 2 ? 's' : ''})`, 'success');
+
+  // Compute latency components
+  const asciiBytes = msgToAscii(msg);
+  let totalFiber = 0, totalTowerDelay = 0, totalAtm = 0, totalVoid = 0;
+  const hops = [];
+
+  for (let i = 0; i < path.length; i++) {
+    const planetId = path[i];
+    const planet = nodes[planetId];
+
+    let entryTower = 0, exitTower = 0;
+
+    if (i > 0) {
+      // came from previous planet — find the receiving tower (best pair from prev)
+      const prev = nodes[path[i-1]];
+      const pair = bestTowerPair(prev, planet);
+      entryTower = pair.bi;
+    }
+    if (i < path.length - 1) {
+      // going to next planet — find sending tower
+      const next = nodes[path[i+1]];
+      const pair = bestTowerPair(planet, next);
+      exitTower = pair.ai;
+    }
+    if (i === 0) entryTower = exitTower; // origin: starts at exit tower
+    if (i === path.length - 1) exitTower = entryTower; // dest: ends at entry
+
+    const tp = internalTransitTime(planet, entryTower, exitTower);
+    totalFiber += tp.fiberTime;
+    totalTowerDelay += tp.towerDelay;
+
+    let payloadEncoded;
+    if (i === path.length - 1) {
+      // final dest: received in next hop's codex (prev planet encoded it), decode to ASCII
+      const prevCodex = nodes[path[i-1]].codex;
+      // actually payload arrives encoded in this planet's codex from previous hop
+      payloadEncoded = encodePayloadToBase(asciiBytes, planet.codex);
+    } else {
+      const nextCodex = nodes[path[i+1]].codex;
+      payloadEncoded = encodePayloadToBase(asciiBytes, nextCodex);
+    }
+
+    hops.push({
+      planet: planetId,
+      codex: planet.codex,
+      entryTower,
+      exitTower,
+      fiberTime: tp.fiberTime,
+      towerDelay: tp.towerDelay,
+      segments: tp.s,
+      towersHit: tp.m,
+      payload: payloadEncoded
+    });
+
+    if (i < path.length - 1) {
+      const nextPlanet = nodes[path[i+1]];
+      const L = voidDistance(planet, nextPlanet);
+      const Tv = voidTravelTime(planet, nextPlanet, L);
+      // atmospheric contribution
+      const atmTime = ((planet.atmosphere_thickness_km * planet.refraction_index)
+                     + (nextPlanet.atmosphere_thickness_km * nextPlanet.refraction_index)) / C * 1000;
+      const pureVoid = (L / C) * 1000;
+      totalAtm += atmTime;
+      totalVoid += pureVoid;
+
+      hops[hops.length - 1].voidToNext = { L, Tv, atmTime, pureVoid, to: path[i+1] };
+      addLog(`[HOP] ${planetId} → ${path[i+1]}: L=${L.toFixed(0)} km, Tv=${Tv.toFixed(3)} ms`, 'hop');
+    }
+  }
+
+  const totalMs = totalFiber + totalTowerDelay + totalAtm + totalVoid;
+
+  lastResult = { path, hops, totalFiber, totalTowerDelay, totalAtm, totalVoid, totalMs, msg, asciiBytes };
+
+  addLog(`✅ Packet delivered! Total latency: ${totalMs.toFixed(3)} ms`, 'success');
+  addLog(`   Fiber: ${totalFiber.toFixed(3)} ms | Towers: ${totalTowerDelay.toFixed(1)} ms | Atm: ${totalAtm.toFixed(3)} ms | Void: ${totalVoid.toFixed(3)} ms`, 'info');
+
+  renderLatency();
+  renderHops();
+  animatePacketPath(path);
+  switchTab('latency');
+}
+
+// ============================================================
+//  RENDER: LATENCY
+// ============================================================
+function renderLatency() {
+  if (!lastResult) return;
+  const { totalFiber, totalTowerDelay, totalAtm, totalVoid, totalMs } = lastResult;
+  const max = Math.max(totalFiber, totalTowerDelay, totalAtm, totalVoid, 1);
+
+  const items = [
+    { label: 'Fiber',   val: totalFiber,      color: '#4a9eff' },
+    { label: 'Towers',  val: totalTowerDelay, color: '#ffd700' },
+    { label: 'Atmosphere', val: totalAtm,     color: '#00ff88' },
+    { label: 'Void',    val: totalVoid,        color: '#c084fc' },
+  ];
+
+  let html = `
+    <div class="latency-card">
+      <div style="color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px">Total Latency</div>
+      <div style="margin-top:4px"><span class="latency-total">${totalMs.toFixed(3)}</span><span class="latency-unit"> ms</span></div>
+      <div style="font-size:10px;color:var(--muted);margin-top:2px">Route: ${lastResult.path.join(' → ')}</div>
+      <div class="latency-bars" style="margin-top:14px">
+  `;
+  items.forEach(item => {
+    const pct = (item.val / totalMs) * 100;
+    const barW = (item.val / Math.max(totalMs, 1)) * 100;
+    html += `
+      <div class="lat-row">
+        <div class="lat-label">${item.label}</div>
+        <div class="lat-bar-wrap"><div class="lat-bar" style="width:${barW}%;background:${item.color}"></div></div>
+        <div class="lat-value" style="color:${item.color}">${item.val.toFixed(3)}</div>
+      </div>
+    `;
+  });
+  html += `</div></div>`;
+
+  // Per-hop breakdown
+  html += `<div style="padding:14px 16px">`;
+  html += `<div class="panel-title">Per-Hop Breakdown</div>`;
+  lastResult.hops.forEach((hop, i) => {
+    const planet = nodes[hop.planet];
+    html += `
+      <div style="background:var(--bg);border-radius:6px;padding:10px;margin-bottom:8px;border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <div style="width:12px;height:12px;border-radius:50%;background:${PLANET_COLORS[hop.planet]}"></div>
+          <strong>${hop.planet}</strong>
+          <span style="color:var(--muted);font-size:10px;margin-left:auto">Base-${hop.codex}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10px;color:var(--muted)">
+          <div>Entry Tower: <span style="color:var(--text)">T_${hop.entryTower}</span></div>
+          <div>Exit Tower: <span style="color:var(--text)">T_${hop.exitTower}</span></div>
+          <div>Arc Segments: <span style="color:var(--text)">${hop.segments}</span></div>
+          <div>Towers Hit: <span style="color:var(--text)">${hop.towersHit}</span></div>
+          <div>Fiber Time: <span style="color:#4a9eff">${hop.fiberTime.toFixed(3)} ms</span></div>
+          <div>Tower Delay: <span style="color:var(--gold)">${hop.towerDelay.toFixed(1)} ms</span></div>
+        </div>
+        ${hop.voidToNext ? `
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:10px">
+          <span style="color:var(--muted)">Void → ${hop.voidToNext.to}:</span>
+          <span style="color:#c084fc;margin-left:6px">L=${hop.voidToNext.L.toFixed(0)} km</span>
+          <span style="color:var(--muted);margin-left:6px">Tv=${hop.voidToNext.Tv.toFixed(3)} ms</span>
+        </div>` : ''}
+      </div>
+    `;
+  });
+  html += `</div>`;
+
+  document.getElementById('latencyCard').innerHTML = html;
+}
+
+// ============================================================
+//  RENDER: HOPS
+// ============================================================
+function renderHops() {
+  if (!lastResult) return;
+  const { hops, msg, path } = lastResult;
+  let html = '';
+
+  hops.forEach((hop, i) => {
+    const isOrigin = i === 0;
+    const isDest = i === hops.length - 1;
+    const label = isOrigin ? 'ORIGIN' : isDest ? 'DEST' : 'RELAY';
+    const payloadStr = hop.payload.join(' ');
+
+    html += `
+      <div class="hop-step">
+        <div class="hop-num">${i+1}</div>
+        <div class="hop-details">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="hop-planet" style="color:${PLANET_COLORS[hop.planet]}">${hop.planet}</span>
+            <span style="font-size:9px;padding:2px 6px;border-radius:10px;background:var(--panel2);color:var(--muted)">${label}</span>
+          </div>
+          <div class="hop-tower">T_${hop.entryTower} → T_${hop.exitTower} · Base-${hop.codex}</div>
+          ${isOrigin ? `<div style="margin-top:4px;font-size:10px;color:var(--muted)">ASCII: [${lastResult.asciiBytes.join(', ')}]</div>` : ''}
+          ${isDest ? `<div style="margin-top:4px;font-size:10px;color:var(--green)">✅ Decoded: "${msg}"</div>` : ''}
+          <div class="hop-payload">
+            ${isDest ? `Received in Base-${hop.codex}:` : `Encoded for next hop (Base-${nodes[path[i+1]]?.codex || hop.codex}):`}<br>
+            [${payloadStr}]
+          </div>
+        </div>
+      </div>
+    `;
+
+    if (hop.voidToNext) {
+      html += `
+        <div style="text-align:center;padding:6px 0;color:var(--muted);font-size:10px">
+          ─── void: ${hop.voidToNext.L.toFixed(0)} km · ${hop.voidToNext.Tv.toFixed(2)} ms ───→
+        </div>
+      `;
+    }
+  });
+
+  document.getElementById('hopPath').innerHTML = html;
+}
+
+// ============================================================
+//  NODE INFO
+// ============================================================
+function selectNode(id) {
+  const n = nodes[id];
+  const dead = deadNodes.has(id);
+  document.querySelectorAll('.planet-item').forEach(el => el.classList.remove('selected'));
+  document.getElementById(`planet-item-${id}`)?.classList.add('selected');
+
+  const html = `
+    <div class="node-info-card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div style="width:40px;height:40px;border-radius:50%;background:${PLANET_COLORS[id]};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#000">${id[0]}</div>
+        <div>
+          <div style="font-size:16px;font-weight:800">${n.id}</div>
+          <div style="color:var(--muted);font-size:10px">${dead ? '⚠️ OFFLINE' : '✅ ONLINE'}</div>
+        </div>
+      </div>
+      <div class="node-stat-grid">
+        <div class="node-stat"><div class="node-stat-label">Codex (Base)</div><div class="node-stat-val">${n.codex}</div></div>
+        <div class="node-stat"><div class="node-stat-label">Active Towers</div><div class="node-stat-val">${n.active_towers}</div></div>
+        <div class="node-stat"><div class="node-stat-label">Radius</div><div class="node-stat-val">${n.radius_km.toLocaleString()} km</div></div>
+        <div class="node-stat"><div class="node-stat-label">Atmosphere</div><div class="node-stat-val">${n.atmosphere_thickness_km} km</div></div>
+        <div class="node-stat"><div class="node-stat-label">Refraction n</div><div class="node-stat-val">${n.refraction_index}</div></div>
+        <div class="node-stat"><div class="node-stat-label">Coordinates</div><div class="node-stat-val">(${n.x}, ${n.y})</div></div>
+      </div>
+      <div style="margin-top:12px">
+        <div class="panel-title">Tower Positions</div>
+        <div style="margin-top:8px;display:grid;grid-template-columns:repeat(4,1fr);gap:4px">
+          ${Array.from({length: n.active_towers}, (_,i) => {
+            const angle = (90 - (360 * i / n.active_towers)).toFixed(1);
+            return `<div style="background:var(--bg);border-radius:3px;padding:5px;text-align:center;font-size:10px;border:1px solid var(--border)">T_${i}<div style="color:var(--muted)">${angle}°</div></div>`;
+          }).join('')}
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <div class="panel-title">Reachable Nodes</div>
+        ${Object.values(nodes).filter(nb => nb.id !== id).map(nb => {
+          const L = voidDistance(n, nb);
+          const reachable = L > 0 && L <= Lmax;
+          return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(26,48,96,0.3);font-size:11px">
+            <span style="color:${PLANET_COLORS[nb.id]}">${nb.id}</span>
+            <span style="color:${reachable ? 'var(--green)' : 'var(--red)'}">
+              ${reachable ? L.toFixed(0) + ' km' : 'OUT OF RANGE'}
+            </span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+  document.getElementById('nodeInfoPanel').innerHTML = html;
+  switchTab('nodes');
+}
+
+// ============================================================
+//  KILL / REVIVE NODE
+// ============================================================
+function toggleNode(id, e) {
+  e.stopPropagation();
+  if (deadNodes.has(id)) {
+    deadNodes.delete(id);
+    addLog(`Node ${id} restored. Re-entering routing table.`, 'success');
+  } else {
+    deadNodes.add(id);
+    addLog(`⚠️ Node ${id} KILLED. Dynamic rerouting active.`, 'warn');
+    // if current route includes dead node, warn
+    if (lastResult && lastResult.path.includes(id)) {
+      addLog(`Current route passes through dead node ${id}! Re-transmit to reroute.`, 'error');
+    }
+  }
+  renderPlanetList();
+  drawUniverse();
+  updateSystemStatus();
+}
+
+function updateSystemStatus() {
+  const alive = Object.keys(nodes).filter(id => !deadNodes.has(id));
+  document.getElementById('nodeCount').textContent = `${alive.length}/${Object.keys(nodes).length} nodes active`;
+  const dot = document.getElementById('systemDot');
+  const status = document.getElementById('systemStatus');
+  if (deadNodes.size === 0) {
+    dot.className = 'status-dot';
+    status.textContent = 'ONLINE';
+    status.style.color = 'var(--green)';
+  } else {
+    dot.className = 'status-dot dead';
+    status.textContent = `DEGRADED (${deadNodes.size} dead)`;
+    status.style.color = 'var(--orange)';
+  }
+}
+
+// ============================================================
+//  CANVAS / VISUALIZATION
+// ============================================================
+const canvas = document.getElementById('universeCanvas');
+const ctx = canvas.getContext('2d');
+const starCanvas = document.getElementById('starfield');
+const starCtx = starCanvas.getContext('2d');
+
+function setupCanvas() {
+  resizeCanvas();
+  window.addEventListener('resize', () => { resizeCanvas(); drawStarfield(); drawUniverse(); });
+}
+
+function resizeCanvas() {
+  const wrap = canvas.parentElement;
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+  starCanvas.width = wrap.clientWidth;
+  starCanvas.height = wrap.clientHeight;
+  computeInitialView();
+}
+
+function computeInitialView() {
+  // Fit all nodes in view
+  const nodeArr = Object.values(nodes);
+  const xs = nodeArr.map(n => n.x), ys = nodeArr.map(n => n.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const cxWorld = (minX + maxX) / 2;
+  const cyWorld = (minY + maxY) / 2;
+  const rangeX = (maxX - minX) || 1;
+  const rangeY = (maxY - minY) || 1;
+  const scaleX = (canvas.width * 0.7) / rangeX;
+  const scaleY = (canvas.height * 0.7) / rangeY;
+  canvasOffset.scale = Math.min(scaleX, scaleY, 1.2);
+  canvasOffset.x = canvas.width / 2 - cxWorld * canvasOffset.scale;
+  canvasOffset.y = canvas.height / 2 - cyWorld * canvasOffset.scale;
+}
+
+function resetView() { computeInitialView(); drawUniverse(); }
+function toggleLabels() { showLabels = !showLabels; drawUniverse(); }
+
+function worldToScreen(wx, wy) {
+  return {
+    x: wx * canvasOffset.scale + canvasOffset.x,
+    y: -wy * canvasOffset.scale + canvasOffset.y + canvas.height * 0.5
+  };
+  // Actually simpler: just use the stored offset
+}
+
+// Compute a screen position for a node
+function nodeScreenPos(n) {
+  return {
+    x: n.x * canvasOffset.scale + canvasOffset.x,
+    y: n.y * canvasOffset.scale + canvasOffset.y
+  };
+}
+
+function drawStarfield() {
+  starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+  const stars = 200;
+  for (let i = 0; i < stars; i++) {
+    const x = Math.random() * starCanvas.width;
+    const y = Math.random() * starCanvas.height;
+    const r = Math.random() * 1.5;
+    const a = Math.random() * 0.8 + 0.2;
+    starCtx.beginPath();
+    starCtx.arc(x, y, r, 0, Math.PI * 2);
+    starCtx.fillStyle = `rgba(255,255,255,${a})`;
+    starCtx.fill();
+  }
+}
+
+function drawUniverse() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Draw void links
+  const alive = Object.keys(nodes).filter(id => !deadNodes.has(id));
+  for (let i = 0; i < alive.length; i++) {
+    for (let j = i + 1; j < alive.length; j++) {
+      const a = nodes[alive[i]], b = nodes[alive[j]];
+      const L = voidDistance(a, b);
+      if (L <= 0 || L > Lmax) continue;
+      const pa = nodeScreenPos(a), pb = nodeScreenPos(b);
+      ctx.beginPath();
+      ctx.moveTo(pa.x, pa.y);
+      ctx.lineTo(pb.x, pb.y);
+      ctx.strokeStyle = 'rgba(0,212,255,0.12)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 8]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  // Highlight last route
+  if (lastResult) {
+    const { path } = lastResult;
+    for (let i = 0; i < path.length - 1; i++) {
+      const a = nodes[path[i]], b = nodes[path[i+1]];
+      const pa = nodeScreenPos(a), pb = nodeScreenPos(b);
+      ctx.beginPath();
+      ctx.moveTo(pa.x, pa.y);
+      ctx.lineTo(pb.x, pb.y);
+      ctx.strokeStyle = 'rgba(0,212,255,0.6)';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = 'var(--accent)';
+      ctx.shadowBlur = 8;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  // Draw planets
+  Object.values(nodes).forEach(n => {
+    const pos = nodeScreenPos(n);
+    const dead = deadNodes.has(n.id);
+    const col = dead ? '#333' : PLANET_COLORS[n.id];
+    const displayR = Math.max(10, Math.log(n.radius_km) * 2.5);
+
+    // Glow
+    if (!dead) {
+      const grd = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, displayR * 2.5);
+      grd.addColorStop(0, col + '40');
+      grd.addColorStop(1, 'transparent');
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, displayR * 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = grd;
+      ctx.fill();
+    }
+
+    // Atmosphere ring
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, displayR + 5, 0, Math.PI * 2);
+    ctx.strokeStyle = dead ? '#333' : col + '40';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Planet body
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, displayR, 0, Math.PI * 2);
+    ctx.fillStyle = dead ? '#222' : col;
+    ctx.fill();
+
+    // Tower dots
+    if (!dead) {
+      for (let t = 0; t < n.active_towers; t++) {
+        const angle = (Math.PI / 2) - (2 * Math.PI * t / n.active_towers);
+        const tx = pos.x + Math.cos(angle) * (displayR + 2);
+        const ty = pos.y - Math.sin(angle) * (displayR + 2);
+        ctx.beginPath();
+        ctx.arc(tx, ty, 2, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff88';
+        ctx.fill();
+      }
+    }
+
+    // Label
+    if (showLabels) {
+      ctx.fillStyle = dead ? '#555' : '#ffffff';
+      ctx.font = `bold 11px system-ui`;
+      ctx.textAlign = 'center';
+      ctx.fillText(n.id, pos.x, pos.y + displayR + 16);
+      ctx.fillStyle = dead ? '#444' : '#88aad0';
+      ctx.font = '9px system-ui';
+      ctx.fillText(`Base-${n.codex}`, pos.x, pos.y + displayR + 26);
+    }
+
+    // Dead X
+    if (dead) {
+      ctx.strokeStyle = '#ff4466';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(pos.x - displayR * 0.7, pos.y - displayR * 0.7);
+      ctx.lineTo(pos.x + displayR * 0.7, pos.y + displayR * 0.7);
+      ctx.moveTo(pos.x + displayR * 0.7, pos.y - displayR * 0.7);
+      ctx.lineTo(pos.x - displayR * 0.7, pos.y + displayR * 0.7);
+      ctx.stroke();
+    }
+  });
+
+  // Draw animated packets
+  drawAnimatedPackets();
+}
+
+// ============================================================
+//  PACKET ANIMATION
+// ============================================================
+function animatePacketPath(path) {
+  animationPackets = [];
+  for (let i = 0; i < path.length - 1; i++) {
+    animationPackets.push({
+      from: path[i], to: path[i+1],
+      progress: 0, delay: i * 30, active: false
+    });
+  }
+  requestAnimationFrame(animateStep);
+}
+
+let animFrame = 0;
+function animateStep() {
+  animFrame++;
+  let anyActive = false;
+  animationPackets.forEach(p => {
+    if (animFrame >= p.delay) {
+      p.active = true;
+      p.progress = Math.min(1, p.progress + 0.018);
+      if (p.progress < 1) anyActive = true;
+    } else {
+      anyActive = true;
+    }
+  });
+  drawUniverse();
+  if (anyActive) requestAnimationFrame(animateStep);
+  else animationPackets = [];
+}
+
+function drawAnimatedPackets() {
+  animationPackets.forEach(p => {
+    if (!p.active || p.progress >= 1) return;
+    const a = nodes[p.from], b = nodes[p.to];
+    const pa = nodeScreenPos(a), pb = nodeScreenPos(b);
+    const x = pa.x + (pb.x - pa.x) * p.progress;
+    const y = pa.y + (pb.y - pa.y) * p.progress;
+    // Trail
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#00d4ff';
+    ctx.shadowColor = '#00d4ff';
+    ctx.shadowBlur = 15;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  });
+}
+
+// ============================================================
+//  CANVAS EVENTS
+// ============================================================
+function setupCanvasEvents() {
+  canvas.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    dragStart = { x: e.clientX - canvasOffset.x, y: e.clientY - canvasOffset.y };
+  });
+  canvas.addEventListener('mousemove', (e) => {
+    if (isDragging) {
+      canvasOffset.x = e.clientX - dragStart.x;
+      canvasOffset.y = e.clientY - dragStart.y;
+      drawUniverse();
+    }
+    // Tooltip
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    let found = null;
+    Object.values(nodes).forEach(n => {
+      const pos = nodeScreenPos(n);
+      const displayR = Math.max(10, Math.log(n.radius_km) * 2.5);
+      const dx = mx - pos.x, dy = my - pos.y;
+      if (Math.sqrt(dx*dx+dy*dy) < displayR + 8) found = n;
+    });
+    const tip = document.getElementById('tooltip');
+    if (found) {
+      tip.style.display = 'block';
+      tip.style.left = (e.clientX - canvas.getBoundingClientRect().left + 12) + 'px';
+      tip.style.top = (e.clientY - canvas.getBoundingClientRect().top - 10) + 'px';
+      const L_max_neighbor = Object.values(nodes).filter(nb => nb.id !== found.id && voidDistance(found, nb) <= Lmax && voidDistance(found,nb) > 0).map(nb => nb.id).join(', ') || 'None';
+      tip.innerHTML = `<strong style="color:${PLANET_COLORS[found.id]}">${found.id}</strong><br>Base-${found.codex} · ${found.active_towers} towers<br>r=${found.radius_km.toLocaleString()} km<br>Atm: ${found.atmosphere_thickness_km} km<br><span style="color:var(--muted)">Links: ${L_max_neighbor}</span>`;
+    } else {
+      tip.style.display = 'none';
+    }
+  });
+  canvas.addEventListener('mouseup', () => isDragging = false);
+  canvas.addEventListener('mouseleave', () => { isDragging = false; document.getElementById('tooltip').style.display='none'; });
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.1 : 0.9;
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    canvasOffset.x = mx - (mx - canvasOffset.x) * factor;
+    canvasOffset.y = my - (my - canvasOffset.y) * factor;
+    canvasOffset.scale *= factor;
+    drawUniverse();
+  });
+  canvas.addEventListener('click', (e) => {
+    if (Math.abs(e.movementX) > 3 || Math.abs(e.movementY) > 3) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    Object.values(nodes).forEach(n => {
+      const pos = nodeScreenPos(n);
+      const displayR = Math.max(10, Math.log(n.radius_km) * 2.5);
+      const dx = mx - pos.x, dy = my - pos.y;
+      if (Math.sqrt(dx*dx+dy*dy) < displayR + 8) selectNode(n.id);
+    });
+  });
+}
+
+// ============================================================
+//  LOG
+// ============================================================
+function addLog(msg, type = 'info') {
+  const container = document.getElementById('logContainer');
+  const time = new Date().toLocaleTimeString('en',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const div = document.createElement('div');
+  div.className = `log-entry ${type}`;
+  div.innerHTML = `<span class="log-time">${time}</span>${msg}`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+// ============================================================
+//  TABS
+// ============================================================
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const names = ['log','latency','hops','nodes'];
+    t.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => {
+    c.classList.toggle('active', c.id === `tab-${name}`);
+  });
+}
+
+// ============================================================
+//  BOOT
+// ============================================================
+init();
+</script>
+</body>
+</html>
