@@ -68,7 +68,7 @@ Every packet has 4 delay components:
 - Internally processed as ASCII between towers
 
 ### Fault Tolerance
-- Kill any node using the 💀 button
+- Kill any node using the button
 - System instantly reroutes around dead nodes
 - No data loss
 
