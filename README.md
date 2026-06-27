@@ -1,11 +1,11 @@
-# 🌌 Zeta-26 · Relic Ring Protocol
+#  Zeta-26 · Relic Ring Protocol
 
 **Team:** ByteForce  
 **Competition:** Launch 26 — IEEE Computer Society, University of Kelaniya
 
 ---
 
-## 📡 What is This?
+##  What is This?
 
 A communication network simulator for the Zeta-26 star system.  
 After the Hyper-Flare of 3704 destroyed the quantum network, this system  
@@ -13,7 +13,7 @@ reconnects planets using physical fiber cables and laser transceivers.
 
 ---
 
-## 🚀 How to Run
+##  How to Run
 
 1. Download or clone this repository
 2. Open `zeta26_simulator.html` in any modern browser
@@ -23,19 +23,19 @@ reconnects planets using physical fiber cables and laser transceivers.
 
 ---
 
-## ✨ Features
+##  Features
 
-- 🪐 Interactive universe map with all 6 planetary nodes
-- ⚡ Real-time packet transmission between planets
-- 🔢 Automatic base conversion (each planet uses a different codex)
-- 📊 Full latency breakdown — Fiber, Tower, Atmosphere, Void
-- 🛸 Hop-by-hop packet trace with tower routing
-- 💀 Live node kill/revive with dynamic rerouting
-- 🔭 Zoom, pan, and inspect any planet
+-  Interactive universe map with all 6 planetary nodes
+-  Real-time packet transmission between planets
+-  Automatic base conversion (each planet uses a different codex)
+-  Full latency breakdown — Fiber, Tower, Atmosphere, Void
+-  Hop-by-hop packet trace with tower routing
+-  Live node kill/revive with dynamic rerouting
+-  Zoom, pan, and inspect any planet
 
 ---
 
-## 🌍 Planets (Nodes)
+##  Planets (Nodes)
 
 | Planet | Codex | Towers | Radius |
 |--------|-------|--------|--------|
@@ -48,7 +48,7 @@ reconnects planets using physical fiber cables and laser transceivers.
 
 ---
 
-## ⚙️ How It Works
+##  How It Works
 
 ### Latency Calculation
 Every packet has 4 delay components:
@@ -74,11 +74,11 @@ Every packet has 4 delay components:
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ---
 
-## 🔧 Configuration
+##  Configuration
 
 The system reads all values from `universe-config.json` — no hardcoded planetary values.
 
