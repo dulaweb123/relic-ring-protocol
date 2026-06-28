@@ -295,9 +295,8 @@
 </div>
 
 <script>
-// ============================================================
+
 //  UNIVERSE CONFIG
-// ============================================================
 const CONFIG = {
   "universe_metadata": {
     "system_name": "Zeta-26",
@@ -324,9 +323,7 @@ const Lmax = META.max_void_hop_distance_km;
 const f = META.fiber_speed_fraction;
 const dt = META.tower_processing_delay_ms;
 
-// ============================================================
 //  STATE
-// ============================================================
 let nodes = {};
 let deadNodes = new Set();
 let lastResult = null;
@@ -346,9 +343,8 @@ const PLANET_COLORS = {
   'Caelum':  '#c084fc'
 };
 
-// ============================================================
+
 //  INIT
-// ============================================================
 function init() {
   CONFIG.nodes.forEach(n => {
     nodes[n.id] = { ...n };
@@ -398,9 +394,8 @@ function renderPlanetList() {
   });
 }
 
-// ============================================================
+
 //  MATH UTILITIES
-// ============================================================
 function voidDistance(a, b) {
   const dx = (b.x - a.x);
   const dy = (b.y - a.y);
@@ -469,9 +464,7 @@ function internalTransitTime(planet, entryTower, exitTower) {
   return { fiberTime, towerDelay, total: fiberTime + towerDelay, s, m };
 }
 
-// ============================================================
 //  ROUTING (Dijkstra on void links)
-// ============================================================
 function buildGraph() {
   const alive = Object.keys(nodes).filter(id => !deadNodes.has(id));
   const edges = {};
@@ -530,9 +523,7 @@ function dijkstra(origin, destination) {
   return path;
 }
 
-// ============================================================
 //  BASE CONVERSION
-// ============================================================
 function toBase(n, base) {
   if (n === 0) return '0';
   const digits = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -564,9 +555,7 @@ function msgToAscii(msg) {
   return [...msg].map(c => c.charCodeAt(0));
 }
 
-// ============================================================
 //  PACKET TRANSMISSION
-// ============================================================
 function sendPacket() {
   const origin = document.getElementById('originSelect').value;
   const dest = document.getElementById('destSelect').value;
