@@ -671,9 +671,8 @@ function sendPacket() {
   switchTab('latency');
 }
 
-// ============================================================
+
 //  RENDER: LATENCY
-// ============================================================
 function renderLatency() {
   if (!lastResult) return;
   const { totalFiber, totalTowerDelay, totalAtm, totalVoid, totalMs } = lastResult;
@@ -740,9 +739,8 @@ function renderLatency() {
   document.getElementById('latencyCard').innerHTML = html;
 }
 
-// ============================================================
+
 //  RENDER: HOPS
-// ============================================================
 function renderHops() {
   if (!lastResult) return;
   const { hops, msg, path } = lastResult;
@@ -785,9 +783,8 @@ function renderHops() {
   document.getElementById('hopPath').innerHTML = html;
 }
 
-// ============================================================
+
 //  NODE INFO
-// ============================================================
 function selectNode(id) {
   const n = nodes[id];
   const dead = deadNodes.has(id);
@@ -839,9 +836,8 @@ function selectNode(id) {
   switchTab('nodes');
 }
 
-// ============================================================
+
 //  KILL / REVIVE NODE
-// ============================================================
 function toggleNode(id, e) {
   e.stopPropagation();
   if (deadNodes.has(id)) {
@@ -876,9 +872,8 @@ function updateSystemStatus() {
   }
 }
 
-// ============================================================
+
 //  CANVAS / VISUALIZATION
-// ============================================================
 const canvas = document.getElementById('universeCanvas');
 const ctx = canvas.getContext('2d');
 const starCanvas = document.getElementById('starfield');
@@ -1061,9 +1056,7 @@ function drawUniverse() {
   drawAnimatedPackets();
 }
 
-// ============================================================
 //  PACKET ANIMATION
-// ============================================================
 function animatePacketPath(path) {
   animationPackets = [];
   for (let i = 0; i < path.length - 1; i++) {
@@ -1111,9 +1104,7 @@ function drawAnimatedPackets() {
   });
 }
 
-// ============================================================
 //  CANVAS EVENTS
-// ============================================================
 function setupCanvasEvents() {
   canvas.addEventListener('mousedown', (e) => {
     isDragging = true;
@@ -1171,9 +1162,7 @@ function setupCanvasEvents() {
   });
 }
 
-// ============================================================
 //  LOG
-// ============================================================
 function addLog(msg, type = 'info') {
   const container = document.getElementById('logContainer');
   const time = new Date().toLocaleTimeString('en',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
@@ -1197,9 +1186,7 @@ function switchTab(name) {
   });
 }
 
-// ============================================================
 //  ENCODING VISUALIZER
-// ============================================================
 function showEncodingVisualizer() {
   if (!lastResult) {
     addLog('No transmission yet. Send a packet first!', 'warn');
